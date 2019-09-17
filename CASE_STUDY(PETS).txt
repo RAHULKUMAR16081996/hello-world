@@ -1,0 +1,95 @@
+                                              DESIGN LAYOUT ( CASE STUDY)
+
+A.  INPUT FILES
+
+1.MASTER FILE : KSDS FILE - KEY(3,0) , ALT KEY(1,3), RECL:80,80 
+ FIELDS : PET-ID                PIC XXX 
+           FILLER               PIC XXX
+          PET TYPE              PIC 9
+           FILLER               PIC XXX
+          BREED                 PIC X(10)
+           FILLER               PIC XXX
+          DOP                   PIC XXXXXX
+            FILLER              PIC XXX
+          CP                    PIC 9999.99
+            FILLER              PIC XX
+           QUANTITY             PIC 99
+
+
+
+2. SALES TRANSACTION FILE : PS FILE , RECL:80
+         PET-ID                   PIC XXX
+           FILLER                 PIC XXX
+         MRP                      PIC 9999.99
+           FILLER                  PIC XXX
+         QUANTITY( TO BE BOUGHT)   PIC 99  
+
+B.    OUTPUT FILES
+
+1. PROCESSED SALES : ESDS FILE , RECL:80 
+    FIELDS : PET-ID             PIC XXX
+             FILLER             PIC XXX
+             DOP-CURRENT        PIC XXXXXX
+             FILLER              PIC XXX
+             QUANTITY(BOUGHT)    PIC 99
+             FILLER              PIC XXX
+             TOTAL-PRICE         PIC 99999.99   
+             FILLER              PIC XXX
+             LOSS/PROFIT         PIC -9999.99
+   
+
+C. REPORTS : PS FILES
+
+1. UNPROCESSED ORDERS
+2. PROFIT/LOSS REPORT    
+
+###################################################################################################################################################################
+
+REPORT FORMATS
+
+I. PROFIT/LOSS REPORT
+
+  WORKING-STORAGE SECTION.
+       01 DATES
+           05 FILLER    PIC X(60)
+           05 WS-DATE    PIC X(8)
+           05 FILLER     PIC XXX.
+           05 WS-TIME    PIC (8)        
+       01 WS-PAGE
+           05 FILLER     PIC X(60)
+           05 PG         PIX X(10) VALUE 'PAGE-NO:'.
+           05 WS-PG      PIC 99 VALUE 1.
+       01 HEAD1       PIC X(20) .
+          88 H-CAT      VALUE '1'.                   ************* MOVE PET-TYPE TO HEAD1**********
+          88 H-DOG      VALUE '2'.
+          88 H-BIRD     VALUE '3'.
+          88 H-FISH     VALUE '4'. 
+       01 HEAD2       PIC X(80) VALUE 'PET-ID   BREED   POD     PRICE   QUANTITY    PROFIT'
+       01 LINE       PIC X(80) VALUE ALL '-'.
+       01 WS-DETAILS
+           05 PET-ID     PIC XXX.
+           05 BREED       PIC X(10).
+           05 DOP        PIC XXXXXX.                                    ****** PUT FILLERS IN BETWEEN FIELDS ***
+           05 PRICE      PIC 9999.99.
+           05 QUANTITY    PIC 99.
+           05 PROFIT      PIC -9999.99 
+       01 LINE2       PIC X(80) VALUE ALL '-'.
+       01 SOLD       PIC X(30).
+           88 S-CAT  VALUE '1'                                      ***************MOVE PET-TYPE TO SOLD******
+           88 S-DOG  VALUE '2'                                       **********WHEN CAT   DISPLAY "TOTAL NUMBE OF CATS SOLD" CATS_SOLD*****8
+           88 S-BIRD  VALUE '3'
+           88 S-FISH   VALUE '4'
+       01 PR-LOS     PIC X(20).
+           88 P-CAT  VALUE '1'                                      ***************MOVE PET-TYPE TO SOLD******
+           88 P-DOG  VALUE '2'                                       **********WHEN CAT   DISPLAY "TOTAL PROFIT" TOTAL_PROFIT**********8
+           88 P-BIRD  VALUE '3'
+           88 P-FISH   VALUE '4'
+
+   ######################################################################
+ STEPS :
+
+1. OPEN BOTH INPUT FILES ( MASTER_FILE AND SALES_TRANS FILE)
+2. CHECK IF PET-ID MATCHES OF SALES TRANSACTION AND MASTER FILE
+3. IF YES : CHECK IF QUANTITY IS AVAILABLE IN MASTER 
+ 4. IF YES: UPDATE PROCESS_FILE
+     IF NO: UPDATE PENDING FILE         
