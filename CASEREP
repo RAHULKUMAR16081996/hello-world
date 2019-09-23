@@ -1,0 +1,260 @@
+       IDENTIFICATION DIVISION.                                         00010002
+       PROGRAM-ID. CASEREP.                                             00020002
+       ENVIRONMENT DIVISION.                                            00030008
+       INPUT-OUTPUT SECTION.                                            00040008
+       FILE-CONTROL.                                                    00050008
+            SELECT MASTERFILE ASSIGN TO DD1                             00060002
+            ORGANIZATION   IS INDEXED                                   00070072
+            ACCESS MODE    IS DYNAMIC                                   00080072
+            RECORD KEY     IS FS-PID                                    00090072
+            ALTERNATE KEY  IS FS-PTYPE                                  00091072
+            FILE STATUS    IS WS-FS1.                                   00100072
+            SELECT PROCESS ASSIGN TO AS-DD3                             00110069
+            ORGANIZATION   IS SEQUENTIAL                                00120072
+            ACCESS MODE    IS SEQUENTIAL                                00130072
+            FILE STATUS    IS WS-FS3.                                   00140072
+            SELECT REPORTFILE ASSIGN TO DD5                             00150003
+            FILE STATUS    IS WS-FS5.                                   00160072
+       DATA DIVISION.                                                   00170003
+       FILE SECTION.                                                    00180003
+         FD PROCESS.                                                    00190003
+         01 PROREC.                                                     00200003
+             05 FS-PETID     PIC XXX.                                   00210003
+             05 FS-DOPC      PIC XXXXXX.                                00240004
+             05 FS-QTY       PIC 99.                                    00260004
+             05 FS-TPRICE    PIC 99999V99.                              00280004
+             05 FS-PROLOSS   PIC S9999V99.                              00290005
+             05              PIC X(56).                                 00300005
+         FD MASTERFILE.                                                 00310005
+         01 PETREC.                                                     00320006
+             05 FS-PID       PIC XXX.                                   00330006
+             05 FS-PTYPE     PIC X.                                     00340006
+             05 FS-BREED     PIC X(10).                                 00350006
+             05 FS-DOP       PIC XXXXXX.                                00360006
+             05 FS-CP        PIC 9999V99.                               00370006
+             05 FS-QTY       PIC 99.                                    00380006
+             05              PIC X(52).                                 00390006
+         FD REPORTFILE.                                                 00400006
+         01 R-DATE           PIC X(80).                                 00410006
+         01 R-TYPE           PIC X(80).                                 00420006
+         01 R-HEAD           PIC X(80).                                 00430006
+         01 R-LINE1          PIC X(80).                                 00440006
+         01 R-OUTREC         PIC X(80).                                 00450006
+         01 R-LINE2          PIC X(80).                                 00460006
+         01 R-SOLD.                                                     00470006
+             05 R-SD         PIC X(37).                                 00480060
+             05 R-SCNTR      PIC 99.                                    00490058
+             05              PIC X(41).                                 00500060
+         01 R-PRO.                                                      00510006
+             05 R-PL         PIC X(30).                                 00520006
+             05 R-PLVALUE    PIC -99999.99.                             00530006
+             05              PIC X(41).                                 00540006
+         01 R-SPACE          PIC X(80).                                 00541068
+       WORKING-STORAGE SECTION.                                         00550006
+         01 WS-DATES.                                                   00560008
+             05              PIC X(42).                                 00570056
+             05 WS-DT        PIC X(8)  VALUE 'DATE   :'.                00571064
+             05 WS-DATE      PIC XXXXXXXX.                              00580054
+         01 WS-YYMMDD        PIC XXXXXX.                                00581072
+         01 WS-CHECK         PIC 9.                                     00590006
+             88 CAT                    VALUE 1.                         00600006
+             88 DOG                    VALUE 2.                         00610006
+             88 BIRD                   VALUE 3.                         00620006
+             88 FISH                   VALUE 4.                         00630006
+         01 WS-PETTYPE.                                                 00640008
+             05 WS-TYPE      PIC X(20).                                 00650006
+             05              PIC X(22).                                 00660060
+             05 PG           PIC X(8)  VALUE 'PAGE NO:'.                00670070
+             05 WS-PG        PIC 9     VALUE 1.                         00680006
+         01 WS-HEAD          PIC X(80) VALUE 'PETID   BREED     DATEPUR 00690070
+      -                              '    PRICE    QTY    PROFIT'.      00700067
+         01 WS-LINE          PIC X(80) VALUE ALL '-'.                   00710006
+         01 WS-DETAILS.                                                 00720006
+             05 WS-PETID     PIC XXX.                                   00730006
+             05              PIC XXX.                                   00740006
+             05 WS-BREED     PIC X(10).                                 00750006
+             05              PIC XX.                                    00760064
+             05 WS-DOPC      PIC XXXXXXXX.                              00770065
+             05              PIC X.                                     00780065
+             05 WS-TPRICE    PIC -99999.99.                             00790065
+             05              PIC XXX.                                   00800066
+             05 WS-QTY       PIC 99.                                    00810006
+             05              PIC XXX.                                   00820006
+             05 WS-PROLOSS   PIC -9999.99.                              00830055
+         01 WS-PLCOPY        PIC S9999V99.                              00831055
+         77 WS-FS1           PIC 99.                                    00840006
+         77 WS-FS3           PIC 99.                                    00850006
+         77 WS-FS5           PIC 99.                                    00860006
+         01 WS-FLAG          PIC 9         VALUE 0.                     00861072
+         01 WS-CNTR          PIC 99        VALUE 0.                     00862072
+         01 WS-FINALPL       PIC S99999V99 VALUE 0.                     00863051
+         01 WS-DOPCOPY       PIC XXXXXX.                                00864060
+         01 WS-SPACE         PIC X(80)     VALUE ALL SPACES.            00865072
+        PROCEDURE DIVISION.                                             00870006
+        MAIN-PARA.                                                      00880006
+               PERFORM REPORT-OPEN-PARA                                 00883013
+               MOVE 1 TO WS-CHECK                                       00883122
+               PERFORM CHECK-PROCESS-PARA 4 TIMES                       00884070
+               EXIT PROGRAM.                                            00890069
+        MASTER-OPEN-PARA.                                               00900011
+               OPEN INPUT MASTERFILE                                    00910012
+                 IF WS-FS1 = 0                                          00920070
+                   DISPLAY "MASTERFILE IS OPEN"                         00930070
+                   ELSE DISPLAY " MASTERFILE NOT OPEN"                  00940070
+                 END-IF.                                                00950070
+        PROCESS-OPEN-PARA.                                              00960012
+               OPEN INPUT PROCESS                                       00961012
+                 IF WS-FS3 = 0                                          00962070
+               DISPLAY "PROCESSFILE IS OPEN"                            00963012
+               ELSE DISPLAY " PROCESSFILE NOT OPEN"                     00964012
+               END-IF.                                                  00965012
+        REPORT-OPEN-PARA.                                               00966012
+               OPEN OUTPUT REPORTFILE                                   00967012
+               IF WS-FS5 = 0                                            00968012
+               DISPLAY "REPORTFILE IS OPEN"                             00969012
+               ELSE DISPLAY " REPORTFILE NOT OPEN"                      00969112
+               END-IF.                                                  00969212
+      *****CHECKING IF THE A PARTICULAR PET-TYPE WAS SOLD THAT DAY***   00969371
+        CHECK-PROCESS-PARA.                                             00969429
+               PERFORM PROCESS-OPEN-PARA                                00969523
+               PERFORM UNTIL WS-FS3 NOT = 0                             00969628
+               READ PROCESS NEXT RECORD                                 00969726
+               AT END DISPLAY " END OF PROCESS FILE REACHED"            00969817
+               NOT AT END                                               00969913
+                 IF FS-PETID(1:1) = WS-CHECK                            00970019
+                 ADD 1 TO WS-FLAG                                       00970121
+                 END-IF                                                 00970218
+               END-READ                                                 00971016
+               END-PERFORM                                              00972028
+               CLOSE PROCESS                                            00980022
+                 DISPLAY "FLAG" WS-FLAG                                 00980126
+      *==== PERFORMING THE REPORT ONLY IF PET-TYPE AVAILABLE =======    00980271
+      *====IF PET-TYPE NOT AVAILABLE - SKIP TO NEXT PET-TYPE========    00980371
+                IF WS-FLAG > 0                                          00980430
+                 PERFORM HEADER-PARA                                    00980530
+                ELSE                                                    00980630
+                 DISPLAY " CONTROL BREAK PARA"                          00980731
+                END-IF                                                  00980830
+               ADD 1 TO WS-CHECK                                        00990025
+               INITIALIZE WS-FLAG                                       00991029
+               DISPLAY "CHECK" WS-CHECK.                                01000025
+      ****** WRITING THE HEADER OF THE REPORT **********************    01001071
+        HEADER-PARA.                                                    01010030
+               DISPLAY "HEADER CHECK VALUE" WS-CHECK                    01011030
+               ACCEPT WS-YYMMDD FROM DATE                               01020052
+               MOVE WS-YYMMDD(1:2) TO WS-DATE(7:2)                      01021052
+               MOVE WS-YYMMDD(3:2) TO WS-DATE(4:2)                      01022052
+               MOVE WS-YYMMDD(5:2) TO WS-DATE(1:2)                      01023052
+               MOVE '/' TO WS-DATE(3:1)                                 01024054
+               MOVE '/' TO WS-DATE(6:1)                                 01025054
+               EVALUATE TRUE                                            01030030
+               WHEN CAT                                                 01040030
+                MOVE 'PET TYPE : CAT ' TO WS-TYPE                       01050060
+               WHEN DOG                                                 01060030
+                MOVE 'PET TYPE : DOG ' TO WS-TYPE                       01070060
+               WHEN BIRD                                                01080030
+                MOVE 'PET TYPE : BIRD' TO WS-TYPE                       01090060
+               WHEN FISH                                                01100030
+                MOVE 'PET TYPE : FISH' TO WS-TYPE                       01110060
+               WHEN OTHER                                               01120030
+                DISPLAY " INVALID PET TYPE"                             01130030
+               END-EVALUATE                                             01140030
+               MOVE WS-DATES TO R-DATE                                  01150030
+               WRITE R-DATE                                             01160030
+               MOVE WS-PETTYPE TO R-TYPE                                01170030
+               WRITE R-TYPE                                             01180030
+               MOVE WS-HEAD TO R-HEAD                                   01190030
+               WRITE R-HEAD                                             01200030
+               MOVE WS-LINE TO R-LINE1                                  01210030
+               WRITE R-LINE1                                            01220031
+               ADD 1 TO WS-PG                                           01221034
+               DISPLAY " HEADER PARA PERFORMED"                         01230035
+               PERFORM WRITE-RECORD-PARA.                               01231035
+      *****INSERTING THE RECORDS OF THE CURRENT PET-TYPE********        01231171
+       WRITE-RECORD-PARA.                                               01232035
+               PERFORM PROCESS-OPEN-PARA                                01232136
+               PERFORM UNTIL WS-FS3 NOT = 0                             01232236
+               READ PROCESS NEXT RECORD                                 01232335
+               AT END DISPLAY " RECORDS WRITTEN"                        01233035
+               NOT AT END                                               01234035
+                IF FS-PETID(1:1) = WS-CHECK                             01235035
+                  DISPLAY " ID MATCHED"                                 01236035
+                 PERFORM MASTER-READ-PARA                               01236239
+                  MOVE FS-PETID TO WS-PETID                             01237035
+                  MOVE FS-DOPC TO WS-DOPCOPY                            01238056
+                  MOVE WS-DOPCOPY(1:2) TO WS-DOPC(1:2)                  01238156
+                  MOVE '/' TO WS-DOPC(3:1)                              01238260
+                  MOVE WS-DOPCOPY(3:2) TO WS-DOPC(4:2)                  01238360
+                  MOVE '/' TO WS-DOPC(6:1)                              01238466
+                  MOVE WS-DOPCOPY(5:2) TO WS-DOPC(7:2)                  01238566
+                  MOVE FS-QTY OF PROCESS TO WS-QTY                      01239037
+                  MOVE FS-TPRICE TO WS-TPRICE                           01239135
+                  MOVE FS-PROLOSS TO WS-PROLOSS                         01239243
+                  MOVE FS-PROLOSS TO WS-PLCOPY                          01239355
+                  WRITE R-OUTREC FROM WS-DETAILS                        01239435
+                  DISPLAY "OUTREC" WS-DETAILS                           01239542
+      *====WS-CNTR COUNTS THE TOTAL PETS SOLD OF THAT PET-TYPE======    01239671
+      *====WS-FINALPL CALVULATES THE TOTAL PROFIT OF THAT PET-TYPE===   01239771
+                 COMPUTE WS-CNTR = WS-CNTR + WS-QTY                     01239856
+                COMPUTE WS-FINALPL = WS-FINALPL + WS-PLCOPY             01239955
+                END-IF                                                  01240035
+               END-READ                                                 01240135
+               END-PERFORM                                              01240236
+               CLOSE PROCESS                                            01240336
+               IF WS-FS5 = 0                                            01240435
+                  DISPLAY " RECORD WRITE SUCCESSFULL"                   01240535
+                  ELSE DISPLAY " RECORD WRITE UNSUCCESFUL  "            01240635
+               END-IF                                                   01240750
+              PERFORM SUMMARY-PARA.                                     01240850
+      ***** READING THE MASTERFILE TO COPY THE BREED NAME TO REPORT**** 01240971
+       MASTER-READ-PARA.                                                01241035
+               PERFORM MASTER-OPEN-PARA                                 01241136
+               MOVE FS-PETID TO FS-PID                                  01241236
+               READ MASTERFILE                                          01241335
+               KEY IS FS-PID                                            01241436
+                 INVALID KEY DISPLAY " MASTER READ FAILED"              01241536
+                 NOT INVALID KEY                                        01241636
+                  MOVE FS-BREED TO WS-BREED                             01241736
+                END-READ                                                01241836
+                CLOSE MASTERFILE.                                       01241936
+      ****WRITING THE SUMMARY OF EVERY PET-TYPE AFTER WRITING RECORDS***01242071
+       SUMMARY-PARA.                                                    01243031
+               MOVE WS-LINE TO R-LINE2                                  01250031
+               WRITE R-LINE2                                            01260031
+               IF WS-CHECK = 1                                          01270032
+                PERFORM CAT-PARA                                        01280031
+               END-IF                                                   01290031
+               IF WS-CHECK = 2                                          01300032
+                PERFORM DOG-PARA                                        01310031
+               END-IF                                                   01311031
+               IF WS-CHECK = 3                                          01320032
+                PERFORM BIRD-PARA                                       01330031
+               END-IF                                                   01331031
+               IF WS-CHECK = 4                                          01340032
+                PERFORM FISH-PARA                                       01350031
+               ELSE                                                     01360031
+                DISPLAY " CHECK VALUE OUT OF SCOPE"                     01370031
+               END-IF                                                   01380031
+               MOVE 'TOTAL PROFIT/LOSS' TO R-PL                         01390031
+               MOVE WS-FINALPL TO R-PLVALUE                             01400031
+               WRITE R-PRO                                              01410031
+               INITIALIZE WS-CNTR                                       01420031
+               INITIALIZE WS-FINALPL                                    01430068
+               MOVE WS-SPACE TO R-SPACE                                 01431068
+               WRITE R-SPACE.                                           01432068
+       CAT-PARA.                                                        01440032
+               MOVE 'TOTAL NUMBER OF CATS SOLD ' TO R-SD                01450032
+               MOVE WS-CNTR TO R-SCNTR                                  01460033
+               WRITE R-SOLD.                                            01470032
+       DOG-PARA.                                                        01480032
+               MOVE 'TOTAL NUMBER OF DOGS SOLD ' TO R-SD                01490032
+               MOVE WS-CNTR TO R-SCNTR                                  01500033
+               WRITE R-SOLD.                                            01510032
+       BIRD-PARA.                                                       01520032
+               MOVE 'TOTAL NUMBER OF BIRDS SOLD ' TO R-SD               01530032
+               MOVE WS-CNTR TO R-SCNTR                                  01540033
+               WRITE R-SOLD.                                            01550032
+       FISH-PARA.                                                       01560032
+               MOVE 'TOTAL NUMBER OF FISH SOLD ' TO R-SD                01570032
+               MOVE WS-CNTR TO R-SCNTR                                  01580033
+               WRITE R-SOLD.                                            01590032

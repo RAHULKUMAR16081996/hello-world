@@ -1,0 +1,78 @@
+                                              DESIGN LAYOUT ( CASE STUDY)
+
+A.  INPUT FILES
+
+1.MASTER FILE (MASTERFILE) : KSDS FILE - KEY(3,0) , ALT KEY(1,3), RECL:80,80 
+ FIELDS : fs-PEtID                PIC XXX 
+          FS-PTYPE                PIC 9
+          FS-BREED                 PIC X(10)
+          FS-DOP                   PIC XXXXXX            
+          FS-CP                    PIC 9999v99
+          FS-QUANTITY               PIC 9
+
+
+2. SALES TRANSACTION FILE (SALESTRANS): PS FILE , RECL:80
+         FS-PID                   PIC XXX
+         FS-MRP                   PIC 9999v99
+          FS-QTY                  PIC 99  
+
+B.    OUTPUT FILES
+
+1. PROCESSED SALES (PROCESS) : ESDS FILE , RECL:80 
+    FIELDS : FS-PID             PIC XXX
+             FS-DOPC           PIC XXXXXX
+            FS-QTY             PIC 99
+             FS-TPRICE          PIC 99999V99   
+             FS-PROLOSS        PIC S9999V99
+   
+2. PENDING FILE (PENDING) : PS FILE , RECL: 80
+     FILEDS:  FD PENDING.                        
+ 01 PENREC.                         
+    05 FS-PETID        PIC XXX.     
+    05 FS-MRP          PIC 9999V99. 
+    05 FS-QTY          PIC 99.      
+    05 FS-REMARK       PIC X(40).   *****TO GIVE REMARK AS TO WHY THE RECORD IS IN PENDING FILE*****
+    05                 PIC X(29).   
+C. REPORTS : PS FILES
+
+1. UNPROCESSED ORDERS
+2. PROFIT/LOSS REPORT    
+
+###################################################################################################################################################################
+
+REPORT FORMATS
+
+I. PROFIT/LOSS REPORT
+
+   FD REPORTFILE.                    
+ 01 R-DATE           PIC X(80).    
+ 01 R-TYPE           PIC X(80).    
+ 01 R-HEAD           PIC X(80).    
+ 01 R-LINE1          PIC X(80).    
+ 01 R-OUTREC         PIC X(80).    
+ 01 R-LINE2          PIC X(80).    
+ 01 R-SOLD.                        
+     05 R-SD         PIC X(37).    
+     05 R-SCNTR      PIC 99.       
+     05              PIC X(41).    
+ 01 R-PRO.                         
+     05 R-PL         PIC X(30).    
+     05 R-PLVALUE    PIC -99999.99.
+     05              PIC X(41).    
+ 01 R-SPACE          PIC X(80).    
+
+ 
+          
+
+   ######################################################################
+ STEPS :
+
+1. OPEN BOTH INPUT FILES ( MASTER_FILE AND SALESTRANS FILE)
+2.SORT THE SALESTRANS FILE
+3. CHECK IF PET-ID MATCHES OF SALES TRANSACTION AND MASTER FILE AND CHECK THE POSSIBLE TEST CASES
+4. CHECK IF QUANTITY IS AVAILABLE IN MASTER 
+5. IF YES: UPDATE PROCESS_FILE AS WELL AS MASTERFILE
+   IF NO : UPDATE PENDING FILE
+6. AFTER PROCESSING ALL THE RECORDS , CALL THE SUB-PROGRAM 'CASEREP'
+   CASEREP WILL GENERATE THE REPORT OF THAT PARTICULAR DAY IN A PS FILE ( JCL.MYREP)
+     IF NO: UPDATE PENDING FILE         

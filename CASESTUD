@@ -1,0 +1,147 @@
+       IDENTIFICATION DIVISION.                                         00010000
+       PROGRAM-ID. CASESTUD.                                            00020000
+       ENVIRONMENT DIVISION.                                            00021000
+       INPUT-OUTPUT SECTION.                                            00022000
+       FILE-CONTROL.                                                    00023001
+            SELECT MASTERFILE ASSIGN TO DD1                             00024001
+            ORGANIZATION    IS INDEXED                                  00025073
+            ACCESS MODE     IS DYNAMIC                                  00026073
+            RECORD KEY      IS FS-PID                                   00027073
+            ALTERNATE KEY   IS FS-PTYPE WITH DUPLICATES                 00027173
+            FILE STATUS     IS WS-FS1.                                  00028073
+            SELECT SALESTRANS ASSIGN TO DD2                             00029001
+            FILE STATUS     IS WS-FS2.                                  00029173
+            SELECT PROCESS ASSIGN TO AS-DD3                             00029202
+            ORGANIZATION    IS SEQUENTIAL                               00029373
+            ACCESS MODE     IS SEQUENTIAL                               00029473
+            FILE STATUS     IS WS-FS3.                                  00029573
+            SELECT PENDING ASSIGN TO DD4                                00029602
+            FILE STATUS     IS WS-FS4.                                  00029773
+       DATA DIVISION.                                                   00030000
+       FILE SECTION.                                                    00040001
+      ***********************************************                   00040171
+      ** RECORD BUFFER OF ALL 4 FILES IN COPYTM4 ****                   00040271
+       COPY COPYTM4.                                                    00041070
+       WORKING-STORAGE SECTION.                                         00192001
+       77 WS-FS1              PIC 99.                                   00200001
+       77 WS-FS2              PIC 99.                                   00201001
+       77 WS-FS3              PIC 99.                                   00202002
+       77 WS-FS4              PIC 99.                                   00203002
+       01 TEMPREC             PIC X(44).                                00204031
+       01 TEMPQTY             PIC 99.                                   00205031
+       01 WS-DATE             PIC X(8).                                 00206033
+       01 WS-TSP              PIC 99999V99.                             00207039
+       01 WS-TCP              PIC 99999V99.                             00208039
+       01 WS-PL               PIC S9999V99.                             00209039
+       PROCEDURE DIVISION.                                              00210001
+       MAIN-PARA.                                                       00220001
+                CALL 'SORTESDS'                                         00231046
+                PERFORM OPEN-PARA                                       00232047
+                CLOSE SALESTRANS                                        00233048
+                CLOSE MASTERFILE                                        00233157
+                CLOSE PROCESS                                           00233257
+                CLOSE PENDING                                           00233357
+      ********* GENERATING THE REPORT PER DAY ******************        00233472
+               CALL 'CASEREP'                                           00234057
+                STOP RUN.                                               00240046
+      *===== OPENING ALL THE FILES ==============================       00241071
+       OPEN-PARA.                                                       00250002
+             OPEN I-O MASTERFILE                                        00260014
+                 IF WS-FS1 = 0                                          00270071
+                   DISPLAY " MASTERFILE OPEN SUCCESSFUL"                00280071
+                   ELSE DISPLAY "MASTERFILE OPEN FAILED WITH" WS-FS1    00290071
+                 END-IF                                                 00300071
+             OPEN OUTPUT PROCESS                                        00310071
+                 IF WS-FS3 = 0                                          00350071
+                   DISPLAY " PROCESS FILE OPEN SUCCESSFUL"              00351071
+                   ELSE DISPLAY " PROCESS FILE OPEN FAILED WITH " WS-FS300352071
+                 END-IF                                                 00353071
+             OPEN OUTPUT PENDING                                        00354071
+                 IF WS-FS4 = 0                                          00358071
+                   DISPLAY " PENDING FILE OPEN SUCCESSFUL"              00359071
+                   ELSE DISPLAY " PENDING FILE OPEN FAILED WITH " WS-FS400359171
+                 END-IF                                                 00359271
+             OPEN INPUT SALESTRANS                                      00360071
+                 IF WS-FS2 = 0                                          00370071
+                   PERFORM UNTIL WS-FS2 NOT = 0                         00380071
+                   READ SALESTRANS NEXT RECORD                          00390071
+                   AT END DISPLAY " END OF RECORD OF SALES TRANSACTION "00400071
+                   NOT AT END PERFORM ID-CHECK-PARA                     00410071
+                   END-READ                                             00420071
+                   END-PERFORM                                          00430071
+                   CLOSE SALESTRANS                                     00440071
+                 ELSE                                                   00450071
+                   DISPLAY " SALESTRANS OPEN FAILED WITH" WS-FS2        00460071
+                 END-IF.                                                00470071
+      *== CHECKING FOR VALID PET-ID AFTER READING SALESTRANS FILE ===   00471071
+        ID-CHECK-PARA.                                                  00480014
+            MOVE FS-PETID OF SALESTRANS TO FS-PID OF MASTERFILE         00481071
+            READ MASTERFILE                                             00490071
+               KEY IS FS-PID                                            00491071
+               INVALID KEY DISPLAY " INVALID PET-ID : BREED UNAVAILABLE"00510071
+                 MOVE 'INVALID PETID:BREED NOT AVAILABLE' TO FS-REMARK  00511071
+                 PERFORM PENDING-ORDER-PARA                             00512071
+               NOT INVALID KEY DISPLAY " PET-ID MATCHED"                00520071
+                 DISPLAY FS-PETID OF SALESTRANS                         00521027
+                 PERFORM QUANTITY-CHECK-PARA                            00530024
+             END-READ.                                                  00550016
+      *==CHECKING ALL POSSIBLE TEST CASES AND AVAILABILITY OF QTY ====  00551071
+        QUANTITY-CHECK-PARA.                                            00560024
+                IF FS-MRP OF SALESTRANS IS NUMERIC                      00561064
+                  IF FS-QTY OF SALESTRANS IS NUMERIC                    00561164
+                    IF FS-QTY OF MASTERFILE >= FS-QTY OF SALESTRANS     00570064
+                    DISPLAY " REQUIRED QUANTITY AVAILABLE "             00580064
+                    DISPLAY FS-QTY OF SALESTRANS                        00581064
+                    PERFORM PROCESS-ORDER-PARA                          00582064
+                    ELSE                                                00590064
+                    DISPLAY " QUANTITY IS NOT AVAILABLE"                00600064
+                    MOVE 'REQUIRED QUANTITY IS NOT AVAILABLE' TO        00600164
+                    FS-REMARK OF PENDING                                00600264
+                    PERFORM PENDING-ORDER-PARA                          00601064
+                    END-IF                                              00610064
+                  ELSE                                                  00611064
+                    MOVE 'QUANTITY IS NOT NUMERIC' TO FS-REMARK         00612064
+                    PERFORM PENDING-ORDER-PARA                          00613065
+                  END-IF                                                00614064
+                ELSE                                                    00615064
+                  MOVE 'MRP IS NOT NUMERIC' TO FS-REMARK                00616064
+                  PERFORM PENDING-ORDER-PARA                            00617065
+                END-IF.                                                 00618064
+      *==== UPDATING THE PENDING ORDER FILE =====================       00619072
+        PENDING-ORDER-PARA.                                             00620025
+                MOVE FS-PETID OF SALESTRANS TO FS-PETID OF PENDING      00621052
+                MOVE FS-MRP OF SALESTRANS TO FS-MRP OF PENDING          00622052
+                MOVE FS-QTY OF SALESTRANS TO FS-QTY OF PENDING          00623052
+                WRITE PENREC                                            00640026
+                IF WS-FS4 = 0                                           00650026
+                   DISPLAY " WRITE SUCCESS: PENDING ORDER UPDATED "     00660026
+                   DISPLAY SALESREC                                     00660128
+                ELSE                                                    00670026
+                   DISPLAY " WRITE UNSUCCESSFUL ON PENDING FILE"        00680026
+                END-IF.                                                 00690027
+      *======= UPDATING THE MASTERFILE AND PROCESS ORDER FILE ========  00691072
+        PROCESS-ORDER-PARA.                                             00700031
+           DISPLAY " INITIAL QUANTITY IN MASTERFILE"                    00701031
+      *-------UPDATING QUANTITY ON MASTER FILE----------------------    00701172
+           DISPLAY FS-QTY OF MASTERFILE                                 00702031
+           COMPUTE TEMPQTY = FS-QTY OF MASTERFILE - FS-QTY OF SALESTRANS00710031
+           MOVE TEMPQTY TO FS-QTY OF MASTERFILE                         00720031
+           REWRITE PETREC.                                              00730031
+           DISPLAY " REWRITE STATUS IN MASTERFILE " WS-FS1              00740031
+           DISPLAY " QUANTITY LEFT AFTER PROCESSING "                   00750031
+           DISPLAY FS-QTY OF MASTERFILE                                 00760031
+      * -------- WRITING TO PROCESS FILE------------------------------  00770072
+           MOVE FS-PID TO FS-PETID OF PROCESS                           00780032
+           ACCEPT FS-DOPC FROM DATE                                     00790033
+           MOVE FS-QTY OF SALESTRANS TO FS-QTY OF PROCESS               00800033
+           COMPUTE WS-TSP = FS-QTY OF SALESTRANS * FS-MRP OF SALESTRANS 00810039
+           MOVE WS-TSP TO FS-TPRICE OF PROCESS                          00820039
+           COMPUTE WS-TCP = FS-CP OF MASTERFILE * FS-QTY OF SALESTRANS  00821072
+           COMPUTE WS-PL = WS-TSP - WS-TCP                              00830072
+           MOVE WS-PL TO FS-PROLOSS OF PROCESS                          00840033
+           WRITE PROREC                                                 00850033
+           IF WS-FS3 = 0                                                00860033
+              DISPLAY " PROCESS FILE HAS BEEN SUCCESSFULLY WRITTEN"     00870072
+           ELSE                                                         00880033
+              DISPLAY " PROCESS FILE NOT UPDATED"                       00890072
+           END-IF.                                                      00900033
